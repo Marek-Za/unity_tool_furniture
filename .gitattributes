@@ -1,0 +1,27 @@
+# Default behavior: Force LF for all text files
+* text=auto eol=lf
+
+# Source code files
+*.cs text eol=lf
+*.shader text eol=lf
+*.cginc text eol=lf
+
+# Unity YAML formats
+*.mat text eol=lf merge=unityyamlmerge
+*.anim text eol=lf merge=unityyamlmerge
+*.unity text eol=lf merge=unityyamlmerge
+*.prefab text eol=lf merge=unityyamlmerge
+*.physicsMaterial2D text eol=lf merge=unityyamlmerge
+*.physicMaterial text eol=lf merge=unityyamlmerge
+*.asset text eol=lf merge=unityyamlmerge
+*.meta text eol=lf merge=unityyamlmerge
+*.controller text eol=lf merge=unityyamlmerge
+
+# Binary assets and 3D models
+*.fbx binary
+*.blend binary
+*.png binary
+*.jpg binary
+*.tga binary
+*.exr binary
+*.wav binary
