@@ -42,10 +42,10 @@ public class FurnitureData : MonoBehaviour {
     }
 
     [Header("Clearance Padding (Extra space around object)")]
-    public float clearanceFront = 0.05f;
-    public float clearanceBack = 0.05f;
-    public float clearanceLeft = 0.05f;
-    public float clearanceRight = 0.05f;
+    public float clearanceFront = 0.01f;
+    public float clearanceBack = 0.01f;
+    public float clearanceLeft = 0.01f;
+    public float clearanceRight = 0.01f;
 
     [Header("Attachment Slots (e.g., for chairs)")]
     public Vector3[] slots;
