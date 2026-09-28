@@ -5,7 +5,7 @@ public class LayoutGenerator : EditorWindow
 {
     // Dimensions of our room (floor)
     
-    private string roomName = "WIP Room";
+    private string roomName = "_Room_VisualizationGhost";
     private GameObject currentlyWorkingOn;
     private Vector3 roomSize = Vector3.one;
     private Vector3 roomCenter = Vector3.zero + new Vector3(0, 1, 0);
@@ -13,7 +13,6 @@ public class LayoutGenerator : EditorWindow
     private bool isVisualizationOn = false;
 
     #region Default values
-    private string de_roomName = "WIP Room";
     private Vector3 de_roomSize = Vector3.one;
     private Vector3 de_roomCenter = Vector3.zero + new Vector3(0, 1, 0);
     #endregion
@@ -42,6 +41,7 @@ public class LayoutGenerator : EditorWindow
         if (isVisualizationOn && currentlyWorkingOn == null) {
             isVisualizationOn = false;
         }
+        EditorGUIUtility.labelWidth = 100;
 
         // Display a bold label for the section
         GUILayout.Label("Procedural Room Settings", EditorStyles.boldLabel);
@@ -53,25 +53,13 @@ public class LayoutGenerator : EditorWindow
             currentlyWorkingOn = EditorGUILayout.ObjectField("Working on", currentlyWorkingOn, typeof(GameObject), allowSceneObjects: true) as GameObject;
             GUILayout.Space(10);
             if (GUILayout.Button("End Work", GUILayout.MaxWidth(70))) {
-                roomName = de_roomName;
                 roomSize = de_roomSize;
                 roomCenter = de_roomCenter;
                 isVisualizationOn = false;
-                currentlyWorkingOn =null;
+                DestroyImmediate(currentlyWorkingOn);
             }
                 GUILayout.EndHorizontal();
         }
-        #endregion
-
-
-        #region roomName
-        GUILayout.Space(10);
-        GUILayout.BeginHorizontal();
-        roomName = EditorGUILayout.TextField("Room name", roomName);
-        GUILayout.Space(10);
-        if (GUILayout.Button("Reset", GUILayout.MaxWidth(70)))
-            roomName = de_roomName;
-        GUILayout.EndHorizontal();
         #endregion
 
         GUILayout.Space(8);
@@ -89,7 +77,6 @@ public class LayoutGenerator : EditorWindow
         float z = EditorGUILayout.FloatField("  Length (Z)", roomSize.z, GUILayout.MaxWidth(500));
         roomSize = new Vector3(x, y, z);
         GUILayout.Space(10);
-
         #endregion
 
         GUILayout.Space(8);
@@ -105,19 +92,24 @@ public class LayoutGenerator : EditorWindow
 
         GUILayout.Space(20);
 
-        parentFolderObject = EditorGUILayout.ObjectField("Parent of this furniture", parentFolderObject, typeof(GameObject),allowSceneObjects:true) as GameObject;
+        #region ParentSetting
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Parent of this furniture (gameObject in scene)");
+        parentFolderObject = EditorGUILayout.ObjectField(parentFolderObject, typeof(GameObject),allowSceneObjects:true) as GameObject;
+        GUILayout.EndHorizontal();
+        #endregion
 
-        
+
 
         #region Buttons
         if (!isVisualizationOn) {
             GUILayout.Space(10);
-            GUILayout.BeginHorizontal();
+            GUILayout.BeginVertical();
+            EditorGUILayout.HelpBox("Will create a ghost of the room in which the furniture will be placed", MessageType.None);
             if (GUILayout.Button("Visualize size of the room",GUILayout.MinWidth(200))) {
                 VisualizeSizeOfRoom();
             }
-            EditorGUILayout.HelpBox("Will create a ghost of the room in which the furniture will be placed", MessageType.None);
-            GUILayout.EndHorizontal();
+            GUILayout.EndVertical();
         }
 
         // Button for automatic filling up the room with the ghost object
@@ -132,14 +124,9 @@ public class LayoutGenerator : EditorWindow
         }
 
         // Create a button that triggers the generation logic when clicked
-        if (GUILayout.Button("Generate Random Furniture")) {
-            
+        if (GUILayout.Button("Fill the room with furniture")) {
+            GUILayout.Space(15);
             GenerateFurniture();
-        }
-        if (GUILayout.Button("Generate 1000 Random Furnitures")) {
-            for (int i = 0; i < 1000; i++) {
-                GenerateFurniture();
-            }
         }
 
         if (currentlyWorkingOn != null) {
