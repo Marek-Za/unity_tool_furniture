@@ -6,7 +6,8 @@ public enum FurnitureCategory {
     Chair,
     Bed,
     Cabinet,
-    Sofa
+    Sofa,
+    Bookcase
 }
 
 // Define the enum for the dropdown menu
