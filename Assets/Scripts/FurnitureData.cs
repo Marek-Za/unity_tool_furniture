@@ -1,15 +1,5 @@
 using UnityEngine;
 
-public enum FurnitureCategory {
-    Undefined,
-    Table,
-    Chair,
-    Bed,
-    Cabinet,
-    Sofa,
-    Bookcase
-}
-
 // Define the enum for the dropdown menu
 public enum ForwardDirection {
     Forward,
@@ -20,7 +10,8 @@ public enum ForwardDirection {
 
 public class FurnitureData : MonoBehaviour {
     [Header("Basic Information")]
-    public FurnitureCategory category = FurnitureCategory.Undefined;
+    [Tooltip("Drag and drop the FurnitureCategorySO asset here.")]
+    public FurnitureCategorySO category;
 
     [Header("Forward Face")]
     [Tooltip("Select which local axis represents the front of the object.")]
@@ -51,8 +42,8 @@ public class FurnitureData : MonoBehaviour {
     [Header("Attachment Slots (e.g., for chairs)")]
     public Vector3[] slots;
 
-    // Dynamically calculating size for visualization
-    private Vector3 CalculateSize(BoxCollider bc, Vector3 actualForward, Vector3 actualRight) {
+    // Dynamically calculating size for visualization
+    private Vector3 CalculateSize(BoxCollider bc, Vector3 actualForward, Vector3 actualRight) {
         float newSizeX = bc.size.x
           + Mathf.Abs(actualForward.x) * (clearanceFront + clearanceBack)
           + Mathf.Abs(actualRight.x) * (clearanceLeft + clearanceRight);
@@ -76,14 +67,14 @@ public class FurnitureData : MonoBehaviour {
 
     private void DrawForwardArrow(Vector3 actualForward) {
         Gizmos.color = Color.blue;
-        // Start the arrow slightly above the ground
-        Vector3 startPos = Vector3.zero + Vector3.up * 0.1f;
+        // Start the arrow slightly above the ground
+        Vector3 startPos = Vector3.zero + Vector3.up * 0.1f;
         Vector3 forwardPos = actualForward * 1.5f;
 
         Gizmos.DrawLine(startPos, forwardPos);
 
-        // Calculate arrow head rotation based on the selected forward vector
-        Quaternion arrowRotation = Quaternion.LookRotation(actualForward);
+        // Calculate arrow head rotation based on the selected forward vector
+        Quaternion arrowRotation = Quaternion.LookRotation(actualForward);
         Vector3 rightWing = arrowRotation * new Vector3(0.2f, 0, -0.2f);
         Vector3 leftWing = arrowRotation * new Vector3(-0.2f, 0, -0.2f);
 
@@ -92,8 +83,8 @@ public class FurnitureData : MonoBehaviour {
     }
 
     private void DrawSlots() {
-        // TODO
-        if (slots != null && slots.Length > 0) {
+        // TODO
+        if (slots != null && slots.Length > 0) {
             Gizmos.color = Color.green;
             foreach (Vector3 slot in slots) {
                 Gizmos.DrawSphere(slot, 0.15f);
@@ -106,16 +97,16 @@ public class FurnitureData : MonoBehaviour {
         if (bc == null)
             return;
 
-        // actualForward is selected by user (Forward vector is default)
-        Vector3 actualForward = ForwardVector;
-        // Vector3.Cross returns a perpendicular vector (Right) based on Up and Forward
-        Vector3 actualRight = Vector3.Cross(Vector3.up, actualForward);
+        // actualForward is selected by user (Forward vector is default)
+        Vector3 actualForward = ForwardVector;
+        // Vector3.Cross returns a perpendicular vector (Right) based on Up and Forward
+        Vector3 actualRight = Vector3.Cross(Vector3.up, actualForward);
 
         Vector3 finalSize = CalculateSize(bc, actualForward, actualRight);
 
-        // Calculate offset dynamically by multiplying our direction vectors with the padding differences
-        Vector3 offset = actualForward * ((clearanceFront - clearanceBack) / 2f)
-           + actualRight * ((clearanceRight - clearanceLeft) / 2f);
+        // Calculate offset dynamically by multiplying our direction vectors with the padding differences
+        Vector3 offset = actualForward * ((clearanceFront - clearanceBack) / 2f)
+            + actualRight * ((clearanceRight - clearanceLeft) / 2f);
 
         Vector3 finalCenter = bc.center + offset;
 
