@@ -4,10 +4,15 @@ using UnityEditor;
 // This tells Unity to use this custom inspector for FurnitureCategoryDatabaseSO objects
 [CustomEditor(typeof(FurnitureCategoryDatabaseSO))]
 public class FurnitureCategoryDatabaseEditor : Editor {
+    private string exportPath = "Assets/FurnitureCategories";
 
     public override void OnInspectorGUI() {
         // Draw the default list of strings
         DrawDefaultInspector();
+
+        GUILayout.Space(5);
+        exportPath = EditorGUILayout.TextField("Export Path", exportPath);
+        GUILayout.Space(10);
 
         FurnitureCategoryDatabaseSO database = (FurnitureCategoryDatabaseSO)target;
 
@@ -20,10 +25,9 @@ public class FurnitureCategoryDatabaseEditor : Editor {
     }
 
     private void GenerateCategories(FurnitureCategoryDatabaseSO database) {
-        string folderPath = "Assets/FurnitureCategories";
 
         // Create the folder if it doesn't exist
-        if (!AssetDatabase.IsValidFolder(folderPath)) {
+        if (!AssetDatabase.IsValidFolder(exportPath)) {
             AssetDatabase.CreateFolder("Assets", "FurnitureCategories");
         }
 
@@ -35,7 +39,7 @@ public class FurnitureCategoryDatabaseEditor : Editor {
                 continue;
 
             string safeName = catName.Trim();
-            string assetPath = $"{folderPath}/{safeName}.asset";
+            string assetPath = $"{exportPath}/{safeName}.asset";
 
             // Check if the asset already exists to prevent overwriting
             FurnitureCategorySO existingAsset = AssetDatabase.LoadAssetAtPath<FurnitureCategorySO>(assetPath);

@@ -15,6 +15,9 @@
 /[Uu]ser[Ss]ettings/
 .plastic/
 *.log
+
+# Script created folders
+/Assets/FurniturePrefabs/
 /Assets/FurnitureCategories/
 
 # By default unity supports Blender asset imports, *.blend1 blender files do not need to be commited to version control.
