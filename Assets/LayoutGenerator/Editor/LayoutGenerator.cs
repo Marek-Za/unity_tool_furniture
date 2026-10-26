@@ -43,6 +43,18 @@ public class LayoutGenerator : EditorWindow
         }
         EditorGUIUtility.labelWidth = 100;
 
+        // Navigation and Setup Guidance
+        GUILayout.Label("Initial Setup", EditorStyles.boldLabel);
+        GUILayout.BeginHorizontal();
+        EditorGUILayout.HelpBox("Before generating the layout, ensure your furniture prefabs are fully prepared.", MessageType.Info);
+
+        if (GUILayout.Button("Open Furniture Preparator", GUILayout.Height(30))) {
+            FurniturePreparator.ShowWindow();
+        }
+        GUILayout.EndHorizontal();
+
+        GUILayout.Space(20);
+
         // Display a bold label for the section
         GUILayout.Label("Procedural Room Settings", EditorStyles.boldLabel);
 
@@ -95,6 +107,7 @@ public class LayoutGenerator : EditorWindow
         #region ParentSetting
         GUILayout.BeginHorizontal();
         GUILayout.Label("Parent of this furniture (gameObject in scene)");
+        EditorGUILayout.HelpBox("Can be left empty for new parent object 'Furniture'", MessageType.None);
         parentFolderObject = EditorGUILayout.ObjectField(parentFolderObject, typeof(GameObject),allowSceneObjects:true) as GameObject;
         GUILayout.EndHorizontal();
         #endregion

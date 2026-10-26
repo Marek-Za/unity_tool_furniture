@@ -5,7 +5,9 @@ using System.Collections.Generic;
 public class FurnitureCategoryDatabaseSO : ScriptableObject {
     [Header("List of all required categories")]
     [Tooltip("Add category names here. The Editor script will generate .asset files for them.")]
+    
     public List<string> categoryNames = new List<string> {
+        "Undefined",
         "Armchair",
         "Bed",
         "Bedside Table",
@@ -18,6 +20,5 @@ public class FurnitureCategoryDatabaseSO : ScriptableObject {
         "Dining Table",
         "Lamp",
         "Office Chair",
-        "TEST"
     };
 }

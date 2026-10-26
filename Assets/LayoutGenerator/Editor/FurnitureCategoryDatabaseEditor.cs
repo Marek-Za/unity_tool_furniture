@@ -1,10 +1,13 @@
 using UnityEngine;
 using UnityEditor;
+using System.IO;
 
 // This tells Unity to use this custom inspector for FurnitureCategoryDatabaseSO objects
 [CustomEditor(typeof(FurnitureCategoryDatabaseSO))]
 public class FurnitureCategoryDatabaseEditor : Editor {
-    private string exportPath = "Assets/FurnitureCategories";
+
+    // Unified path for the whole project structure
+    private string exportPath = "Assets/LayoutGenerator/FurnitureCategories";
 
     public override void OnInspectorGUI() {
         // Draw the default list of strings
@@ -26,9 +29,10 @@ public class FurnitureCategoryDatabaseEditor : Editor {
 
     private void GenerateCategories(FurnitureCategoryDatabaseSO database) {
 
-        // Create the folder if it doesn't exist
-        if (!AssetDatabase.IsValidFolder(exportPath)) {
-            AssetDatabase.CreateFolder("Assets", "FurnitureCategories");
+        // Safely create nested directories if they do not exist
+        if (!Directory.Exists(exportPath)) {
+            Directory.CreateDirectory(exportPath);
+            AssetDatabase.Refresh();
         }
 
         int createdCount = 0;

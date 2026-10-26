@@ -15,7 +15,7 @@ public class FurnitureData : MonoBehaviour {
 
     [Header("Forward Face")]
     [Tooltip("Select which local axis represents the front of the object.")]
-    public ForwardDirection forwardFace = ForwardDirection.Forward;
+    public ForwardDirection forwardFace = ForwardDirection.Back;
 
     public Vector3 ForwardVector {
         get {

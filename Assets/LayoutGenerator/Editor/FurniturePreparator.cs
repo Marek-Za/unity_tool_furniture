@@ -7,8 +7,12 @@ public class FurniturePreparator : EditorWindow {
     // List of raw 3D models dragged in by the user
     public List<GameObject> rawModels = new List<GameObject>();
 
-    // Default export path
-    private string exportPath = "Assets/FurniturePrefabs";
+    // Unified path matching the rest of the project structure
+    private string exportPath = "Assets/LayoutGenerator/FurniturePrefabs";
+    private string categoryPath = "Assets/LayoutGenerator/FurnitureCategories";
+
+    // Flag to show completion warning message in the GUI
+    private bool showCompletionMessage = false;
 
     [MenuItem("DP/Furniture Preparator")]
     public static void ShowWindow() {
@@ -16,13 +20,25 @@ public class FurniturePreparator : EditorWindow {
     }
 
     private void OnGUI() {
+        //Category Setup Guidance
+        #region Category_Setup_Guidance
+        GUILayout.Label("Category Configuration", EditorStyles.boldLabel);
+        EditorGUILayout.HelpBox("It is highly recommended to establish categories before generating furniture assets.", MessageType.Info);
+
+        if (GUILayout.Button("Find and Open Category Database", GUILayout.Height(30))) {
+            PingCategoryDatabase();
+        }
+        #endregion
+
+        GUILayout.Space(20);
+
         GUILayout.Label("Furniture Asset Preparator", EditorStyles.boldLabel);
         GUILayout.Space(5);
 
         exportPath = EditorGUILayout.TextField("Export Path", exportPath);
         GUILayout.Space(10);
 
-        // --- Drag and Drop Area ---
+        //Drag and Drop Area
         GUIStyle dropAreaStyle = new GUIStyle(GUI.skin.box) {
             alignment = TextAnchor.MiddleCenter,
             fontStyle = FontStyle.Bold
@@ -44,12 +60,35 @@ public class FurniturePreparator : EditorWindow {
         GUILayout.BeginHorizontal();
         if (GUILayout.Button("Clear List", GUILayout.Height(30))) {
             rawModels.Clear();
+            showCompletionMessage = false;
         }
 
         if (GUILayout.Button("Prepare and Save Prefabs", GUILayout.Height(30))) {
             ProcessModels();
         }
         GUILayout.EndHorizontal();
+
+        // Display completion message directly in the tool UI
+        if (showCompletionMessage) {
+            GUILayout.Space(15);
+            EditorGUILayout.HelpBox("Preparation process finished. Automatic categorization might encounter ambiguous names. Manual verification of the generated prefabs is recommended", MessageType.Warning);
+        }
+    }
+
+    private void PingCategoryDatabase() {
+        // Locate the database object automatically in the project folder
+        string[] guids = AssetDatabase.FindAssets("t:FurnitureCategoryDatabaseSO");
+        if (guids.Length > 0) {
+            string path = AssetDatabase.GUIDToAssetPath(guids[0]);
+            Object databaseAsset = AssetDatabase.LoadAssetAtPath<Object>(path);
+
+            // Highlight and display the asset in the Inspector
+            Selection.activeObject = databaseAsset;
+            EditorGUIUtility.PingObject(databaseAsset);
+        }
+        else {
+            Debug.LogWarning("Preparator: No FurnitureCategoryDatabaseSO found in the project. Please create one.");
+        }
     }
 
     // Handles the logic for dragging and dropping assets into the specific Rect area
@@ -78,6 +117,8 @@ public class FurniturePreparator : EditorWindow {
     }
 
     private void ProcessModels() {
+        showCompletionMessage = false;
+
         if (rawModels == null || rawModels.Count == 0) {
             Debug.LogWarning("Preparator: No models added to the list.");
             return;
@@ -151,6 +192,9 @@ public class FurniturePreparator : EditorWindow {
                 // Add FurnitureData to Root
                 FurnitureData data = root.AddComponent<FurnitureData>();
 
+                // Attempt to auto-assign a category based on the model name
+                AutoAssignCategory(data, model.name);
+
                 // Determine final file path
                 string localPath = $"{exportPath}/{root.name}.prefab";
                 localPath = AssetDatabase.GenerateUniqueAssetPath(localPath);
@@ -170,5 +214,55 @@ public class FurniturePreparator : EditorWindow {
         // Final refresh to ensure Project window updates
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
+
+        // Trigger the GUI message and log final instruction
+        showCompletionMessage = true;
+        Debug.Log("Preparator: Batch processing finished. Please review the categories manually.");
+    }
+
+    private void AutoAssignCategory(FurnitureData data, string modelName) {
+        if (!Directory.Exists(categoryPath))
+            return;
+
+        // Search for all category assets in the specified folder
+        string[] assetGuids = AssetDatabase.FindAssets("t:FurnitureCategorySO", new[] { categoryPath });
+
+        string lowerModelName = modelName.ToLower();
+        List<FurnitureCategorySO> matchedCategories = new List<FurnitureCategorySO>();
+
+        // Gather all categories that match the model name
+        foreach (string guid in assetGuids) {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            FurnitureCategorySO category = AssetDatabase.LoadAssetAtPath<FurnitureCategorySO>(path);
+
+            // Exclude Undefined from matching logic to prevent false positives
+            if (category != null && category.name != "Undefined" && lowerModelName.Contains(category.name.ToLower())) {
+                matchedCategories.Add(category);
+            }
+        }
+
+        // Assign category based on the number of matches found
+        if (matchedCategories.Count == 1) {
+            data.category = matchedCategories[0];
+            Debug.Log($"Preparator: Auto-assigned category '{matchedCategories[0].name}' to model '{modelName}'.");
+        }
+        else {
+            string undefinedPath = $"{categoryPath}/Undefined.asset";
+            FurnitureCategorySO undefinedCategory = AssetDatabase.LoadAssetAtPath<FurnitureCategorySO>(undefinedPath);
+
+            if (undefinedCategory != null) {
+                data.category = undefinedCategory;
+
+                if (matchedCategories.Count > 1) {
+                    Debug.LogWarning($"Preparator: Model '{modelName}' matched multiple categories ({matchedCategories.Count}). Assigned 'Undefined' to prevent conflicts.");
+                }
+                else {
+                    Debug.Log($"Preparator: Assigned default category 'Undefined' to model '{modelName}'.");
+                }
+            }
+            else {
+                Debug.LogWarning($"Preparator: Default category 'Undefined' not found at {undefinedPath}. Please run the Category Generator.");
+            }
+        }
     }
 }
