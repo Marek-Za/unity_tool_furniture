@@ -20,7 +20,7 @@ public class FurniturePreparator : EditorWindow {
     }
 
     private void OnGUI() {
-        //Category Setup Guidance
+        // Category Setup Guidance
         #region Category_Setup_Guidance
         GUILayout.Label("Category Configuration", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox("It is highly recommended to establish categories before generating furniture assets.", MessageType.Info);
@@ -38,7 +38,7 @@ public class FurniturePreparator : EditorWindow {
         exportPath = EditorGUILayout.TextField("Export Path", exportPath);
         GUILayout.Space(10);
 
-        //Drag and Drop Area
+        // Drag and Drop Area
         GUIStyle dropAreaStyle = new GUIStyle(GUI.skin.box) {
             alignment = TextAnchor.MiddleCenter,
             fontStyle = FontStyle.Bold
@@ -71,7 +71,7 @@ public class FurniturePreparator : EditorWindow {
         // Display completion message directly in the tool UI
         if (showCompletionMessage) {
             GUILayout.Space(15);
-            EditorGUILayout.HelpBox("Preparation process finished. Automatic categorization might encounter ambiguous names. Manual verification of the generated prefabs is recommended", MessageType.Warning);
+            EditorGUILayout.HelpBox("Preparation process finished. Ambiguous names were assigned to Undefined. Manual verification of the generated prefabs is recommended.", MessageType.Warning);
         }
     }
 
@@ -129,7 +129,7 @@ public class FurniturePreparator : EditorWindow {
             try {
                 Directory.CreateDirectory(exportPath);
                 AssetDatabase.Refresh();
-                Debug.Log($"Preparator: Created new directory at {exportPath}");
+                Debug.Log($"Preparator: Created directory at {exportPath}");
             }
             catch (System.Exception e) {
                 Debug.LogError($"Preparator: Failed to create directory: {e.Message}");
@@ -159,7 +159,7 @@ public class FurniturePreparator : EditorWindow {
                 // Find all renderers to calculate exact physical bounds
                 Renderer[] renderers = graphics.GetComponentsInChildren<Renderer>();
                 if (renderers.Length == 0) {
-                    Debug.LogError($"Preparator: Model '{model.name}' has no Renderers. Skipping collider generation.");
+                    Debug.LogError($"Preparator: [{model.name}] -> No Renderers. Skipping collider generation.");
                     DestroyImmediate(root);
                     continue;
                 }
@@ -170,7 +170,7 @@ public class FurniturePreparator : EditorWindow {
                     bounds.Encapsulate(r.bounds);
                 }
 
-                // --- PIVOT FIX LOGIC ---
+                // PIVOT FIX LOGIC
                 Vector3 bottomCenter = new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
                 graphics.transform.position -= bottomCenter;
 
@@ -201,7 +201,6 @@ public class FurniturePreparator : EditorWindow {
 
                 // Save to project
                 PrefabUtility.SaveAsPrefabAsset(root, localPath);
-                Debug.Log($"Preparator: Successfully created prefab '{root.name}' at {localPath}");
 
                 // Cleanup temporary object from the Scene
                 DestroyImmediate(root);
@@ -217,34 +216,64 @@ public class FurniturePreparator : EditorWindow {
 
         // Trigger the GUI message and log final instruction
         showCompletionMessage = true;
-        Debug.Log("Preparator: Batch processing finished. Please review the categories manually.");
+        Debug.Log($"Preparator (Category): Batch processing of {rawModels.Count} models finished. Reviewing categories is recommended");
     }
 
     private void AutoAssignCategory(FurnitureData data, string modelName) {
-        if (!Directory.Exists(categoryPath))
+        if (!Directory.Exists(categoryPath)) {
+            Debug.LogWarning($"Preparator: Category directory not found at {categoryPath}.");
             return;
+        }
 
-        // Search for all category assets in the specified folder
         string[] assetGuids = AssetDatabase.FindAssets("t:FurnitureCategorySO", new[] { categoryPath });
 
-        string lowerModelName = modelName.ToLower();
-        List<FurnitureCategorySO> matchedCategories = new List<FurnitureCategorySO>();
+        // Normalize and extract individual words from the model name
+        string normalizedModelName = NormalizeString(modelName);
+        string[] modelWords = normalizedModelName.Split(new char[] { ' ', '_', '-' }, System.StringSplitOptions.RemoveEmptyEntries);
 
-        // Gather all categories that match the model name
+        List<FurnitureCategorySO> bestCategories = new List<FurnitureCategorySO>();
+        int highestScore = 0;
+
         foreach (string guid in assetGuids) {
             string path = AssetDatabase.GUIDToAssetPath(guid);
             FurnitureCategorySO category = AssetDatabase.LoadAssetAtPath<FurnitureCategorySO>(path);
 
-            // Exclude Undefined from matching logic to prevent false positives
-            if (category != null && category.name != "Undefined" && lowerModelName.Contains(category.name.ToLower())) {
-                matchedCategories.Add(category);
+            if (category != null && category.name != "Undefined") {
+                string normalizedCategory = NormalizeString(category.name);
+                string[] catWords = normalizedCategory.Split(new char[] { ' ', '_', '-' }, System.StringSplitOptions.RemoveEmptyEntries);
+
+                int score = 0;
+
+                // Calculate matching score based on identical words
+                foreach (string cWord in catWords) {
+                    if (cWord.Length >= 2) {
+                        foreach (string mWord in modelWords) {
+                            if (cWord == mWord) {
+                                score++;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Evaluate the category score against current best results
+                if (score > 0) {
+                    if (score > highestScore) {
+                        highestScore = score;
+                        bestCategories.Clear();
+                        bestCategories.Add(category);
+                    }
+                    else if (score == highestScore) {
+                        bestCategories.Add(category);
+                    }
+                }
             }
         }
 
-        // Assign category based on the number of matches found
-        if (matchedCategories.Count == 1) {
-            data.category = matchedCategories[0];
-            Debug.Log($"Preparator: Auto-assigned category '{matchedCategories[0].name}' to model '{modelName}'.");
+        // Assign category only if exactly one category holds the highest score without ties
+        if (bestCategories.Count == 1) {
+            data.category = bestCategories[0];
+            Debug.Log($"Preparator (Category): [{modelName}] -> {bestCategories[0].name}");
         }
         else {
             string undefinedPath = $"{categoryPath}/Undefined.asset";
@@ -253,16 +282,40 @@ public class FurniturePreparator : EditorWindow {
             if (undefinedCategory != null) {
                 data.category = undefinedCategory;
 
-                if (matchedCategories.Count > 1) {
-                    Debug.LogWarning($"Preparator: Model '{modelName}' matched multiple categories ({matchedCategories.Count}). Assigned 'Undefined' to prevent conflicts.");
+                if (bestCategories.Count > 1) {
+                    string matchedNames = string.Join(", ", bestCategories.FindAll(c => c != null).ConvertAll(c => c.name));
+                    Debug.LogWarning($"Preparator (Category): [{modelName}] -> Conflict ({matchedNames}) -> Undefined");
                 }
                 else {
-                    Debug.Log($"Preparator: Assigned default category 'Undefined' to model '{modelName}'.");
+                    Debug.Log($"Preparator (Category): [{modelName}] -> Undefined (No match)");
                 }
             }
             else {
-                Debug.LogWarning($"Preparator: Default category 'Undefined' not found at {undefinedPath}. Please run the Category Generator.");
+                Debug.LogWarning($"Preparator (Category): Default category 'Undefined' missing. Run Category Generator.");
             }
         }
+    }
+
+    // Helper method to split CamelCase and numbers into distinct lowercase words without Regex
+    private string NormalizeString(string text) {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        string result = text[0].ToString();
+        for (int i = 1; i < text.Length; i++) {
+            char c = text[i];
+            char prev = text[i - 1];
+
+            bool isUpperStart = char.IsUpper(c) && char.IsLower(prev);
+            bool isNumberStart = char.IsDigit(c) && !char.IsDigit(prev);
+            bool isNumberEnd = !char.IsDigit(c) && char.IsDigit(prev);
+
+            if (isUpperStart || isNumberStart || isNumberEnd) {
+                result += " ";
+            }
+            result += c;
+        }
+
+        return result.ToLower();
     }
 }
